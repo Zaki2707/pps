@@ -1,0 +1,41 @@
+{
+  "name": "perpustakaan-digital-sekolah",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 0.0.0.0\"",
+    "build": "vite build && tsc -p tsconfig.server.json",
+    "start": "node dist-server/server/index.js",
+    "db:init": "tsx scripts/init-db.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "@zxing/browser": "latest",
+    "bwip-js": "latest",
+    "cookie-parser": "latest",
+    "express": "latest",
+    "multer": "latest",
+    "pg": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "vite": "latest",
+    "xlsx": "latest",
+    "zod": "latest",
+    "dotenv": "latest"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "latest",
+    "@types/express": "latest",
+    "@types/multer": "latest",
+    "@types/node": "latest",
+    "@types/pg": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "concurrently": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
