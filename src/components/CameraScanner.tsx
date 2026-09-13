@@ -18,10 +18,16 @@ function cameraAllowedHere() {
   return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 }
 
+function embeddedPreview() {
+  try { return window.self !== window.top; } catch { return true; }
+}
+
 export function CameraScanner({ active, onScan, onClose, accept, title = 'Scan dengan Kamera' }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(false);
+  const [ready, setReady] = useState(false);
+  const embedded = embeddedPreview();
   const last = useRef({ code: '', at: 0 });
 
   useEffect(() => {
@@ -32,8 +38,10 @@ export function CameraScanner({ active, onScan, onClose, accept, title = 'Scan d
 
     async function start() {
       setError('');
+      setReady(false);
+
       if (!cameraAllowedHere()) {
-        setError('Kamera browser memerlukan HTTPS saat aplikasi dibuka dari PC/HP lain di jaringan LAN.');
+        setError('Kamera memerlukan HTTPS atau localhost. Jika ini preview, buka preview di tab baru.');
         return;
       }
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -65,14 +73,19 @@ export function CameraScanner({ active, onScan, onClose, accept, title = 'Scan d
             void Promise.resolve(onScan(code)).catch(() => {});
           }
         );
+        if (!cancelled) setReady(true);
       } catch (e: any) {
         if (!cancelled) {
           const message =
             e?.name === 'NotAllowedError'
-              ? 'Izin kamera ditolak. Izinkan kamera pada browser lalu coba lagi.'
+              ? (embedded
+                  ? 'Preview tertanam memblokir izin kamera. Buka preview di tab baru lalu izinkan kamera.'
+                  : 'Izin kamera ditolak. Izinkan kamera pada pengaturan situs lalu coba lagi.')
               : e?.name === 'NotFoundError'
                 ? 'Kamera tidak ditemukan pada perangkat ini.'
-                : (e?.message || 'Kamera tidak dapat dibuka.');
+                : e?.name === 'NotReadableError'
+                  ? 'Kamera sedang dipakai aplikasi lain atau tidak dapat diakses.'
+                  : (e?.message || 'Kamera tidak dapat dibuka.');
           setError(message);
         }
       } finally {
@@ -88,9 +101,14 @@ export function CameraScanner({ active, onScan, onClose, accept, title = 'Scan d
       if (stream instanceof MediaStream) stream.getTracks().forEach(track => track.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
     };
-  }, [active, accept, onScan]);
+  }, [active, accept, embedded, onScan]);
 
   if (!active) return null;
+
+  const openStandalone = () => {
+    const opened = window.open(window.location.href, '_blank', 'noopener,noreferrer');
+    if (!opened) setError('Tab baru diblokir browser. Gunakan tombol pop-out / open in new tab pada preview.');
+  };
 
   return <div className="camera-shell" role="dialog" aria-modal="true" aria-label={title}>
     <div className="camera-card">
@@ -98,13 +116,25 @@ export function CameraScanner({ active, onScan, onClose, accept, title = 'Scan d
         <div><strong>{title}</strong><small>Arahkan barcode ke area kamera.</small></div>
         <button type="button" className="camera-close" onClick={onClose} aria-label="Tutup kamera">×</button>
       </div>
+
+      {embedded && <div className="camera-preview-note">
+        Preview terdeteksi berada di dalam iframe. Jika kamera tidak muncul, buka aplikasi sebagai tab mandiri.
+        <button type="button" onClick={openStandalone}>Buka di tab baru</button>
+      </div>}
+
       <div className="camera-preview">
         <video ref={videoRef} muted playsInline autoPlay />
         <div className="camera-target" aria-hidden="true" />
-        {starting && <div className="camera-status">Membuka kamera…</div>}
+        {starting && <div className="camera-status">Meminta izin kamera…</div>}
+        {ready && !starting && <div className="camera-status camera-ready">● Kamera aktif</div>}
       </div>
-      {error && <div className="camera-error">{error}</div>}
-      <p className="camera-help">Mendukung barcode anggota, barcode buku, ISBN/EAN, dan QR. Barcode yang tidak sesuai konteks akan diabaikan.</p>
+
+      {error && <div className="camera-error">
+        {error}
+        {embedded && <button type="button" onClick={openStandalone}>Buka di tab baru</button>}
+      </div>}
+
+      <p className="camera-help">Video diproses langsung di browser dan tidak dikirim ke server.</p>
     </div>
   </div>;
 }
