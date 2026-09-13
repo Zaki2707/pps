@@ -1,10 +1,11 @@
 {
   "name": "perpustakaan-digital-sekolah",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 0.0.0.0\"",
+    "dev": "vite --host 0.0.0.0",
+    "dev:full": "concurrently -k \"tsx watch server/index.ts\" \"vite --host 0.0.0.0\"",
     "build": "vite build && tsc -p tsconfig.server.json",
     "start": "node dist-server/server/index.js",
     "db:init": "tsx scripts/init-db.ts",
